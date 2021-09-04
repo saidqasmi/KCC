@@ -2,18 +2,15 @@
 % Please edit documentation in R/tools.R
 \name{loadRData}
 \alias{loadRData}
-\title{Loading Rdata with a specific name}
+\title{Load a single object from a Rdata file into a specified variable}
 \usage{
 loadRData(fileName)
 }
 \arguments{
-\item{fileName}{a}
-}
-\value{
-As
+\item{fileName}{a character string giving the name of the file to load}
 }
 \description{
-More detailed description
+Load a single object from a Rdata file into a specified variable
 }
 \examples{
 

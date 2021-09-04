@@ -2,26 +2,33 @@
 % Please edit documentation in R/kriging.R
 \name{kriging}
 \alias{kriging}
-\title{Computes a set of realisations from a multivariate Gaussian distribution, and organizes the output as a X-array with "usual" dimensions, ie year, sample, forcing}
+\title{Apply the gaussian conditioning theorem to derive a posterior distribution
+from a prior and observations}
 \usage{
 kriging(x, SX, y, SY, H)
 }
 \arguments{
-\item{x}{: a priori mean                background}
+\item{x}{a vector of time series corresponding to the mean of the prior}
 
-\item{SX}{: cov matrix of x                background error}
+\item{SX}{the covariance matrix corresponding to \code{x}. The number of
+lines and columns must be equal to the length of \code{x}.}
 
-\item{y}{: observation                    obs}
+\item{y}{a vector of time series corresponding to the observations}
 
-\item{SY}{: cov matrix of y                observational error}
+\item{SY}{the covariance matrix corresponding to \code{y}. The number of
+lines and columns must be equal to the length of \code{y}.}
 
-\item{H}{: observation operator        observation operator}
+\item{H}{a matrix corresponding to an observation operator. The number of
+lines (columns) must be equal to the length of \code{y}(\code{x}).}
 }
 \value{
-X a (ny,Nres+1,nf) array.
+a list of two lists. The first list \code{mean} contains the mean of
+    the posterior. The second list \code{var} contains the associated
+    covariance matrix.
 }
 \description{
-More detailed description
+Apply the gaussian conditioning theorem to derive a posterior distribution
+from a prior and observations
 }
 \examples{
 

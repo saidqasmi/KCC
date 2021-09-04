@@ -2,28 +2,46 @@
 % Please edit documentation in R/x_fit.R
 \name{x_fit}
 \alias{x_fit}
-\title{Detrend time series}
+\title{Decomposition of simulated time series into natural and anthropogenic
+responses}
 \usage{
 x_fit(Xd, Enat, Sigma, x_df, Nres, ant)
 }
 \arguments{
-\item{Xd}{A piControl time series}
+\item{Xd}{a 2-D array of dimension \code{[length(year),length(model)]}
+containing the time series associated with the model ensemble means. The
+first dimension has the time series of years, \code{year}, as names. The
+second dimension, \code{model}, must be a vector containing the names of
+all models.}
 
-\item{Enat}{A piControl time series}
+\item{Enat}{a 2-D array of dimension \code{[length(year),Nres]}
+containing the response to natural forcings.}
 
-\item{Sigma}{A piControl time series}
+\item{Sigma}{the covariance matrix accounting for uncertainty in internal
+variability}
 
-\item{x_df}{A piControl time series}
+\item{x_df}{the number of degrees of freedom for the smoothing by splines}
 
-\item{Nres}{A piControl time series}
+\item{Nres}{the number of realisations in the gaussian sample of
+\code{Enat}}
 
-\item{ant}{A piControl time series}
+\item{ant}{a logical value indicating whether the anthropogenic response
+should be returned}
 }
 \value{
-A detrended time series
+a 4-D array of dimension
+    \code{[length(year), Nres+1, length(forcing), length(model)]}, containing
+    the response to several forcings. \code{forcing} is a character vector
+    containing the types of external forcing: \code{nat} for natural,
+    \code{all} for all forcings, \code{ant} for anthropogenic (if flagged at
+    the function call). A best-estimate is provided with \code{Nres}
+    realisations sampling uncertainty in each model.
 }
 \description{
-More detailed description
+\code{x_fit} fits a Generalized Additive Model (GAM, see equation 7 in Qasmi
+and Ribes, 2021) to each climate model ensemble mean to estimate the natural
+and anthropogenic responses. For each response, an ensemble of realisations
+is returned accounting for uncertainty related to internal variability.
 }
 \examples{
 

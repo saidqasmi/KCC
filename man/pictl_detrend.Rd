@@ -2,18 +2,18 @@
 % Please edit documentation in R/x_fit.R
 \name{pictl_detrend}
 \alias{pictl_detrend}
-\title{Detrend time series}
+\title{Remove trend from time series}
 \usage{
 pictl_detrend(x)
 }
 \arguments{
-\item{x}{A piControl time series}
+\item{x}{a vector of time series}
 }
 \value{
-A detrended time series
+a vector from which the linear trend in \code{x} is removed
 }
 \description{
-More detailed description
+Remove trend from time series
 }
 \examples{
 

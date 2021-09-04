@@ -2,22 +2,31 @@
 % Please edit documentation in R/ebm_response.R
 \name{ebm_response}
 \alias{ebm_response}
-\title{Calculate nat response for each set of params}
+\title{Compute the response to natural external forcings}
 \usage{
 ebm_response(FF, ebm_params, year, Nres)
 }
 \arguments{
-\item{FF}{A piControl time series}
+\item{FF}{a time series of natural forcings}
 
-\item{ebm_params}{A piControl time series}
+\item{ebm_params}{a data.frame in which columns are the EBM parameters and
+lines are the CMIP models}
 
-\item{year}{A piControl time series}
+\item{year}{a time series of years of the same size as \code{FF}}
 
-\item{Nres}{A piControl time series}
+\item{Nres}{the number of realisations wished in the gaussian distribution}
+}
+\value{
+returns a 2-D array of dimension \code{[length(year),Nres+1]}
+    containing the response to natural forcings. A best-estimate is provided
+    with \code{Nres} realisations sampling model uncertainty.
 }
 \description{
-ANT NAT DECOMPOSITION PART
-Calculate EBM responses --> Enat
+Given an ensemble of CMIP model parameters fitted on the Energy Balance Model
+(EBM, see equation 6 in Qasmi and Ribes, 2021), and a time series of natural
+forcings, \code{ebm_response} computes for each model the response to these
+forcings. A gaussian distribution is generated after a resampling of all
+model responses.
 }
 \examples{
 

@@ -2,18 +2,26 @@
 % Please edit documentation in R/estim_mar2.R
 \name{estim_mar2_link}
 \alias{estim_mar2_link}
-\title{Detrend time series}
+\title{Fit of a mixture of two autoregressive models of order 1 to a time series}
 \usage{
 estim_mar2_link(y)
 }
 \arguments{
-\item{y}{A piControl time series}
+\item{y}{a vector time series corresponding to an estimate of observed
+internal variability.}
 }
 \value{
-A detrended time series
+a vector containing the MAR1 parameters fitted to \code{y}.
+    \code{var1_ar1} (\code{var2_ar1}) is the variance of the white noise
+    associated with the first (second) AR1. \code{alpha1_ar1}
+    (\code{alpha2_ar1}) is the coefficient at lag 1 associated with the first
+    (second) AR1.
 }
 \description{
-More detailed description
+\code{estim_mar2_link} computes the parameters relative to the mixture of the
+two autoregressive processes of order 1 (MAR, see equation 9 in Qasmi and
+Ribes, 2021) to capture fast and slow components within a given time series.
+Parameters are estimated by maximum likelihood via the \code{optim} function.
 }
 \examples{
 

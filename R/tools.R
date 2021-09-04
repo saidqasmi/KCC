@@ -1,10 +1,6 @@
-#' Loading Rdata with a specific name
+#' Load a single object from a Rdata file into a specified variable
 #'
-#' More detailed description
-#'
-#' @param fileName a
-#'
-#' @return As
+#' @param fileName a character string giving the name of the file to load
 #'
 #' @examples
 #'
@@ -14,24 +10,15 @@ loadRData <- function(fileName){
   get(ls()[ls() != "fileName"])
 }
 
-#' Loading Rdata with a specific name
+#' Computes the square root of a matrix
 #'
-#' creates an array (/vector/matrix) with only 1 [and appropriate names / dimnames]
+#' \code{matrix_sqrt} calculates the square root of a matrix by diagonalisation.
 #'
-#' @param x a
+#' @param M a square matrix
 #'
-#' @return As
-#'
-#' @examples
+#' @return the square root of \code{M}
 #'
 #' @export
-ones = function(x) {
-  z=x-x+1
-  z[is.na(z)]=1
-  return(z)
-}
-
-
 matrix_sqrt = function(M) {
 	Md = eigen(M)
 	return(Re(Md$vectors) %*% diag(sqrt(pmax(Re(Md$values),0))) %*% t(Re(Md$vectors)))
@@ -42,15 +29,28 @@ nnames = function(X) {
 	return(names(dimnames(X)))
 }
 
-#' Computes a set of realisations from a multivariate Gaussian distribution, and organizes the output as a X-array with "usual" dimensions, ie year, sample, forcing
+#' Computes an ensemble of realisations from a multivariate gaussian
+#' distribution parameters
 #'
-#' More detailed description
+#' For multiple types of external forcings (natural, all in the current
+#' version), \code{mvgauss_to_Xarray} generates a sample of time series
+#' corresponding to the response to each forcing from the gaussian parameters.
 #'
-#' @param mu the mean of MV-Gauss distribution, a vector of size ns, mu needs appropriate names
-#' @param Sigma the var-covariance matrix of MV-Gauss distribution, a (ns,ns) matrix
-#' @param Nres the size of wished sample
+#' @param mu a vector of time series corresponding to the mean of the
+#'     multivariate gaussian distribution. The names of each element must
+#'     correspond to the folowing pattern : \code{year_forcing}, eg
+#'     \code{1850_nat} for the mean natural response in 1850. The current
+#'     allowed forcings are \code{nat} and \code{all}. \code{mu} is tipically a
+#'     vector of concatenated time series relative to the response to the
+#'     natural and all external forcings for a given period.
+#' @param Sigma a matrix of size \code{[length(mu),length(mu)]}
+#'     corresponding to the variance-covariance matrix of the multivariate
+#'     gaussian distribution
+#' @param Nres the size of the wished sample
 #'
-#' @return X a (ny,Nres+1,nf) array.
+#' @return returns a 3-D array of dimension
+#'     \code{[Nres,length(year),length(forcing)]} where \code{year} is a time
+#'     series of years and \code{forcing} is the type of forcing
 #'
 #' @examples
 #'
@@ -87,6 +87,30 @@ mvgauss_to_Xarray = function(mu,Sigma,Nres) {
 
 	return(X)
 
+}
+
+#' Extract model name from a pseudo observation chain of character
+#'
+#' For a given character folowing the pattern \code{model_member}, eg
+#' \code{CanESM5_r1i1p1f1}, \code{full_names_to_std} returns the character
+#' \code{model}, name, i.e. CanESM5.
+#'
+#' @param Models_fullnames a character, or a vector of character following the
+#'     pattern \code{model_member}
+#'
+#' @return a character, or a vector of character containing the \code{model}
+#'     character.
+#'
+#' @examples
+#'
+#' @export
+full_names_to_std = function(Models_fullnames,sep="_") {
+	Nmod = length(Models_fullnames)
+	std_names = rep("",Nmod)
+	for (i in 1:Nmod) {
+		std_names[i] = strsplit(Models_fullnames[i],sep)[[1]][1]
+	}
+	return(std_names)
 }
 
 

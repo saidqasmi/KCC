@@ -1,12 +1,20 @@
-#' Calculate nat response for each set of params
+#' Compute the response to natural external forcings
 #'
-#' ANT NAT DECOMPOSITION PART
-#' Calculate EBM responses --> Enat
+#' Given an ensemble of CMIP model parameters fitted on the Energy Balance Model
+#' (EBM, see equation 6 in Qasmi and Ribes, 2021), and a time series of natural
+#' forcings, \code{ebm_response} computes for each model the response to these
+#' forcings. A gaussian distribution is generated after a resampling of all
+#' model responses.
 #'
-#' @param ebm_params A piControl time series
-#' @param FF A piControl time series
-#' @param year A piControl time series
-#' @param Nres A piControl time series
+#' @param FF a time series of natural forcings
+#' @param ebm_params a data.frame in which columns are the EBM parameters and
+#'     lines are the CMIP models
+#' @param year a time series of years of the same size as \code{FF}
+#' @param Nres the number of realisations wished in the gaussian distribution
+#'
+#' @return returns a 2-D array of dimension \code{[length(year),Nres+1]}
+#'     containing the response to natural forcings. A best-estimate is provided
+#'     with \code{Nres} realisations sampling model uncertainty.
 #'
 #' @examples
 #'
@@ -31,21 +39,6 @@ ebm_response = function(FF,ebm_params,year,Nres) {
 	return(Enat)
 }
 
-#' Calculate EBM model function
-#'
-#' More detailed description
-#'
-#' @param FF A piControl time series
-#' @param c A piControl time series
-#' @param c0 A piControl time series
-#' @param lamb A piControl time series
-#' @param gamm A piControl time series
-#'
-#' @return A detrended time series
-#'
-#' @examples
-#'
-#' @export
 hmodel <- function(FF, c, c0, lamb, gamm){
   N <- length(FF)
   dt <- 1; #-- timestep (year)

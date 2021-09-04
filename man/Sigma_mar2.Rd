@@ -2,18 +2,26 @@
 % Please edit documentation in R/estim_mar2.R
 \name{Sigma_mar2}
 \alias{Sigma_mar2}
-\title{Detrend time series}
+\title{Compute the covariance matrix corresponding to a mixture of two
+autoregressive (MAR) processes of order 1}
 \usage{
 Sigma_mar2(theta, n)
 }
 \arguments{
-\item{y}{A piControl time series}
+\item{theta}{a vector containing the MAR parameters returned by
+\code{estim_mar2_link}}
+
+\item{n}{the whished number of lines/columns in the covariance matrix,
+usually corresponds to the number of years of observations.}
 }
 \value{
-A detrended time series
+a symmetric matrix corresponding to the MAR model.
 }
 \description{
-More detailed description
+\code{Sigma_mar2} takes the parameters returned by \code{estim_mar2_link}
+(coefficient at lag 1 and variance) to calculate the matrix coefficients
+whose formulation is given in equations 2 and 3 in Supplementary Material of
+Qasmi and Ribes (2021).
 }
 \examples{
 

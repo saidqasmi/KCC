@@ -2,27 +2,39 @@
 % Please edit documentation in R/plot.R
 \name{plot_scx}
 \alias{plot_scx}
-\title{Same as plot_cx, but inputs (X, X_Cons) include several scenarios, and are grouped into the same (big) array}
+\title{Illustrate the observational constraint}
 \usage{
-plot_scx(
-  X_Cons,
-  obs_x,
-  ofile,
-  ref_plot = NULL,
-  sample = 0,
-  event = NA,
-  name_multi = "multi",
-  ylim = NULL
-)
+plot_scx(X_Cons, obs_x, ofile, ref_plot = NULL, event = NA, ylim = NULL)
 }
 \arguments{
-\item{Xd}{A piControl time series}
+\item{X_Cons}{a 3-D array of dimension
+\code{[length(year),Nres+1,c("uncons","cons")]} containing time series
+sampling the prior and posterior distributions. The first dimension has
+the time series of years, \code{year}, as names. The second dimension
+corresponds to the number of realisations sampling the distribution ; the
+first realisation is the best-estimate. For the third dimension,
+\code{"uncons"} (\code{"cons"}) refers to the unconstrained (constrained)
+distribution.}
+
+\item{obs_x}{a vector of observations.}
+
+\item{ofile}{a character giving the name of the file in which graphics are
+saved}
+
+\item{ref_plot}{a vector containing the years corresponding to the reference
+period to plot anomalies. If \code{NULL}, raw values are plotted.}
+
+\item{event}{a numeric value indicating a year corresponding to an event
+plotted as a vertical line}
+
+\item{ylim}{a vector of two numeric values indicating the limits along the
+y-axis. If \code{NULL} a range is computed automatically.}
 }
 \value{
 A detrended time series
 }
 \description{
-More detailed description
+Illustrate the observational constraint
 }
 \examples{
 

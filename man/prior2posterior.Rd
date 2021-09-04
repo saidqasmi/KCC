@@ -2,7 +2,8 @@
 % Please edit documentation in R/kriging.R
 \name{prior2posterior}
 \alias{prior2posterior}
-\title{Calculate the prior distribution from X_fit, then applies the constrain, and returns a 4D array, including the "cons" and "uncons" vesrions of X.}
+\title{Derive the posterior distribution of time series from a prior given
+observations}
 \usage{
 prior2posterior(
   X_fit,
@@ -13,17 +14,55 @@ prior2posterior(
   ref_CX = "year_obs",
   S_mean = NULL,
   Sigma_mod = NULL,
-  X_add = NULL
+  weights = NULL,
+  met_vec = 1
 )
 }
 \arguments{
-\item{x}{A piControl time series}
+\item{X_fit}{a 4-D array of dimension
+\code{[length(year), Nres, length(forcing), length(model)]} returned by
+\code{x_fit}.}
+
+\item{Xo}{a vector or a matrix. If a vector, \code{Xo} is a time series of
+observations over a given period, and must have names corresponding to
+the years of observations (eg \code{1850:2020}). If a matrix, lines
+correspond to the years of observations and columns to different type of
+observations, which sample measurement uncertainty.}
+
+\item{Sigma_obs}{a sum of a matrix sampling observed internal variability
+(tipically returned by \code{Sigma_mar2}) + a matrix sampling error
+measurements in observations (see Methods in Qasmi and Ribes, 2021).}
+
+\item{Nres}{the whished number of realisations in the posterior gaussian
+sample}
+
+\item{centering_CX}{a logical value indicating whether the constrained time
+series must be in anomalies relative to a given period
+(see \code{ref_CX})}
+
+\item{ref_CX}{a vector containing the years corresponding to the reference
+period if \code{centering_CX = TRUE}.}
+
+\item{weights}{a vector of weights of the same length as the number of
+models to account for dependencies between models if needed.}
 }
 \value{
-A detrended time series
+a list of two lists containing the parameters of the unconstrained
+    (prior) and constrained (posterior) gaussian distributions for the
+    responses to the forcings in \code{X_fit}. The first (second) list named
+    \code{uncons} (\code{cons}) contains two other lists, namely \code{mean}
+    and \code{var}. \code{mean} is a concatenation of time series
+    corresponding to the mean of the distribution for the different forcings.
+    The name of each element follows the pattern: \code{year_forcing}, eg
+    \code{1850_nat} for the mean natural response in 1850. \code{var} is the
+    covariance matrix associated with \code{mu}, sampling the model
+    uncertainty.
 }
 \description{
-More detailed description
+\code{prior2posterior} applies the gaussian conditioning theorem to a prior
+distribution of time simulated responses to several external forcings
+(natural, anthropogenic or both) given observations (see equations 12 and 13
+in Supplementary Material of Qasmi and Ribes, 2021).
 }
 \examples{
 

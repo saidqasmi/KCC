@@ -1,19 +1,20 @@
-Package: K4CMIP
+Package: KCC
 Type: Package
-Title: Kriging 
-Version: 0.1.0
+Title: Kriging for Climate Change (KCC)
+Version: 1.0.0
 Author:
     Saïd Qasmi [aut, cre, cph] (https://orcid.org/0000-0002-1825-3896),
-    Aurélien Ribes [aut, cph]
+    Aurélien Ribes [aut, cph] (https://orcid.org/0000-0001-5102-7885)
 Maintainer: Saïd Qasmi <saidqasmi@gmail.com>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: Functions implementing a kriging interpolation to constrain time
+    series from climate models by observations
 Imports:
     stats,
     gam,
     abind,
     MASS
-License: CeCILL
+License: GPL (>= 3)
+URL: https://gitlab.com/saidqasmi/KCC
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1

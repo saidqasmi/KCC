@@ -2,22 +2,35 @@
 % Please edit documentation in R/tools.R
 \name{mvgauss_to_Xarray}
 \alias{mvgauss_to_Xarray}
-\title{Computes a set of realisations from a multivariate Gaussian distribution, and organizes the output as a X-array with "usual" dimensions, ie year, sample, forcing}
+\title{Computes an ensemble of realisations from a multivariate gaussian
+distribution parameters}
 \usage{
 mvgauss_to_Xarray(mu, Sigma, Nres)
 }
 \arguments{
-\item{mu}{the mean of MV-Gauss distribution, a vector of size ns, mu needs appropriate names}
+\item{mu}{a vector of time series corresponding to the mean of the
+multivariate gaussian distribution. The names of each element must
+correspond to the folowing pattern : \code{year_forcing}, eg
+\code{1850_nat} for the mean natural response in 1850. The current
+allowed forcings are \code{nat} and \code{all}. \code{mu} is tipically a
+vector of concatenated time series relative to the response to the
+natural and all external forcings for a given period.}
 
-\item{Sigma}{the var-covariance matrix of MV-Gauss distribution, a (ns,ns) matrix}
+\item{Sigma}{a matrix of size \code{[length(mu),length(mu)]}
+corresponding to the variance-covariance matrix of the multivariate
+gaussian distribution}
 
-\item{Nres}{the size of wished sample}
+\item{Nres}{the size of the wished sample}
 }
 \value{
-X a (ny,Nres+1,nf) array.
+returns a 3-D array of dimension
+    \code{[Nres,length(year),length(forcing)]} where \code{year} is a time
+    series of years and \code{forcing} is the type of forcing
 }
 \description{
-More detailed description
+For multiple types of external forcings (natural, all in the current
+version), \code{mvgauss_to_Xarray} generates a sample of time series
+corresponding to the response to each forcing from the gaussian parameters.
 }
 \examples{
 

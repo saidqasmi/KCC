@@ -1,15 +1,33 @@
-#' Detrend time series
+#' Decomposition of simulated time series into natural and anthropogenic
+#' responses
 #'
-#' More detailed description
+#' \code{x_fit} fits a Generalized Additive Model (GAM, see equation 7 in Qasmi
+#' and Ribes, 2021) to each climate model ensemble mean to estimate the natural
+#' and anthropogenic responses. For each response, an ensemble of realisations
+#' is returned accounting for uncertainty related to internal variability.
 #'
-#' @param Xd A piControl time series
-#' @param Enat A piControl time series
-#' @param Sigma A piControl time series
-#' @param x_df A piControl time series
-#' @param Nres A piControl time series
-#' @param ant A piControl time series
+#' @param Xd a 2-D array of dimension \code{[length(year),length(model)]}
+#'     containing the time series associated with the model ensemble means. The
+#'     first dimension has the time series of years, \code{year}, as names. The
+#'     second dimension, \code{model}, must be a vector containing the names of
+#'     all models.
+#' @param Enat a 2-D array of dimension \code{[length(year),Nres]}
+#'     containing the response to natural forcings.
+#' @param Sigma the covariance matrix accounting for uncertainty in internal
+#'     variability
+#' @param x_df the number of degrees of freedom for the smoothing by splines
+#' @param Nres the number of realisations in the gaussian sample of
+#'     \code{Enat}
+#' @param ant a logical value indicating whether the anthropogenic response
+#'     should be returned
 #'
-#' @return A detrended time series
+#' @return a 4-D array of dimension
+#'     \code{[length(year), Nres+1, length(forcing), length(model)]}, containing
+#'     the response to several forcings. \code{forcing} is a character vector
+#'     containing the types of external forcing: \code{nat} for natural,
+#'     \code{all} for all forcings, \code{ant} for anthropogenic (if flagged at
+#'     the function call). A best-estimate is provided with \code{Nres}
+#'     realisations sampling uncertainty in each model.
 #'
 #' @importFrom stats lm
 #' @importFrom stats rnorm
@@ -118,44 +136,41 @@ hatm = function(df,year) {
 	return(HatM)
 }
 
-##Ajustement par dichotomie du degres de liberte spline
+# Adjusting the degree of freedom by dichotomy
 proj_dl = function(Deglib) {
 
-# Initialise
-rhomax=10^7
-rhomin=10^-2
-tol=10^-2
+  # Initialise
+  rhomax=10^7
+  rhomin=10^-2
+  tol=10^-2
 
-Rho = c(rhomin,rhomax)
-while (Rho[2]/Rho[1]> (1+tol) ) {
-  rho_new = mean(Rho)
-  ## H, Gamma :
+  Rho = c(rhomin,rhomax)
+  while (Rho[2]/Rho[1]> (1+tol) ) {
+    rho_new = mean(Rho)
+    ## H, Gamma :
+    Hn = t(Zn)%*%Zn + rho_new * Gn
+    Gamma_n = Zn %*% solve(Hn) %*% t(Zn)
+    dl_new = sum(diag(Gamma_n))
+
+    if (dl_new>Deglib) {
+  	 Rho[1] = rho_new
+    } else {
+  	 Rho[2] = rho_new
+    }
+  }
+
+  #return(Rho[1])
   Hn = t(Zn)%*%Zn + rho_new * Gn
   Gamma_n = Zn %*% solve(Hn) %*% t(Zn)
-  dl_new = sum(diag(Gamma_n))
-  #print(dl_new)
-
-  if (dl_new>Deglib) {
-	 Rho[1] = rho_new 
-  } else { 
-	 Rho[2] = rho_new 
-  }
-}
-
-#return(Rho[1])
-Hn = t(Zn)%*%Zn + rho_new * Gn
-Gamma_n = Zn %*% solve(Hn) %*% t(Zn)
-return(Gamma_n)
+  return(Gamma_n)
 
 }
 
-#' Detrend time series
+#' Remove trend from time series
 #'
-#' More detailed description
+#' @param x a vector of time series
 #'
-#' @param x A piControl time series
-#'
-#' @return A detrended time series
+#' @return a vector from which the linear trend in \code{x} is removed
 #'
 #' @importFrom stats lm
 #'
@@ -171,4 +186,19 @@ pictl_detrend = function(x) {
   return(y_res)
 }
 
+#' Replace each element of a numeric vector by 1
+#'
+#' @param x a numeric vector
+#'
+#' @return a vector of the same length as \code{x} but with each element equal
+#'     to 1
+#'
+#' @examples
+#'
+#' @export
+ones = function(x) {
+  z = x-x+1
+  z[is.na(z)] = 1
+  return(z)
+}
 

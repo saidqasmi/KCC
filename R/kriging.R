@@ -1,17 +1,49 @@
-#' Calculate the prior distribution from X_fit, then applies the constrain, and returns a 4D array, including the "cons" and "uncons" vesrions of X.
+#' Derive the posterior distribution of time series from a prior given
+#' observations
 #'
-#' More detailed description
+#' \code{prior2posterior} applies the gaussian conditioning theorem to a prior
+#' distribution of time simulated responses to several external forcings
+#' (natural, anthropogenic or both) given observations (see equations 12 and 13
+#' in Supplementary Material of Qasmi and Ribes, 2021).
 #'
-#' @param x A piControl time series
+#' @param X_fit a 4-D array of dimension
+#'     \code{[length(year), Nres, length(forcing), length(model)]} returned by
+#'     \code{x_fit}.
+#' @param Xo a vector or a matrix. If a vector, \code{Xo} is a time series of
+#'     observations over a given period, and must have names corresponding to
+#'     the years of observations (eg \code{1850:2020}). If a matrix, lines
+#'     correspond to the years of observations and columns to different type of
+#'     observations, which sample measurement uncertainty.
+#' @param Sigma_obs a sum of a matrix sampling observed internal variability
+#'     (tipically returned by \code{Sigma_mar2}) + a matrix sampling error
+#'     measurements in observations (see Methods in Qasmi and Ribes, 2021).
+#' @param Nres the whished number of realisations in the posterior gaussian
+#'     sample
+#' @param centering_CX a logical value indicating whether the constrained time
+#'     series must be in anomalies relative to a given period
+#'     (see \code{ref_CX})
+#' @param ref_CX a vector containing the years corresponding to the reference
+#'     period if \code{centering_CX = TRUE}.
+#' @param weights a vector of weights of the same length as the number of
+#'    models to account for dependencies between models if needed.
 #'
-#' @return A detrended time series
+#' @return a list of two lists containing the parameters of the unconstrained
+#'     (prior) and constrained (posterior) gaussian distributions for the
+#'     responses to the forcings in \code{X_fit}. The first (second) list named
+#'     \code{uncons} (\code{cons}) contains two other lists, namely \code{mean}
+#'     and \code{var}. \code{mean} is a concatenation of time series
+#'     corresponding to the mean of the distribution for the different forcings.
+#'     The name of each element follows the pattern: \code{year_forcing}, eg
+#'     \code{1850_nat} for the mean natural response in 1850. \code{var} is the
+#'     covariance matrix associated with \code{mu}, sampling the model
+#'     uncertainty.
 #'
 #' @importFrom abind abind
 #'
 #' @examples
 #'
 #' @export
-prior2posterior = function(X_fit,Xo,Sigma_obs,Nres=NULL,centering_CX=T,ref_CX="year_obs",S_mean=NULL,Sigma_mod=NULL,X_add=NULL) {
+prior2posterior = function(X_fit,Xo,Sigma_obs,Nres=NULL,centering_CX=T,ref_CX="year_obs",S_mean=NULL,Sigma_mod=NULL,weights=NULL,met_vec=1) {
 
 	year = dimnames(X_fit)$year
 
@@ -24,27 +56,28 @@ prior2posterior = function(X_fit,Xo,Sigma_obs,Nres=NULL,centering_CX=T,ref_CX="y
 											  paste0(as.character(year),"_nat")),#
 									 NULL))
 
-		if (!is.null(X_add)) {
-			names(dimnames(X_add))[1] = "year"
-			S = abind(S,X_add,along=1,use.dnns=T)
+		if (!is.null(weights)) {
+		  S_mean = apply(S, 1, function(x) weighted.mean(x,as.vector(weights)))
+		  Sigma_mod = weighted.cov(t(S),as.vector(weights))
+		} else {
+		  S_mean = apply(S,1,mean)
+		  Sigma_mod = var(t(S))
 		}
-
-		S_mean = apply(S,1,mean)
-		Sigma_mod = var(t(S))
 
 	}
 
 	# constraining
-	X_cons = constrain(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=centering_CX,ref_CX=ref_CX)
+	X_cons = constrain(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=centering_CX,ref_CX=ref_CX,met_vec=met_vec)
 
 	return(X_cons)
 }
 
-constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NULL) {
+constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NULL,met_vec=1) {
 
 	# Time axis
 	year_obs = dimnames(Xo)$year
 	nyox  = length(year_obs)
+	Nmet = length(met_vec)
 
 	# Matrix H: selecting "all", centering, extracting relevant years
 	S_mean_array = as.array(S_mean)
@@ -59,10 +92,19 @@ constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NU
 
 		} else if (!prod(ref_CX %in% year_obs)) {
 
-			stop("Error in constrain(): Reference period is inconsistency with obs")
+			stop("Error in constrain(): Reference period is inconsistent with obs")
 		}
 
-		Center	= diag(rep(1,nyox)) - rep(1,nyox)%o%(year_obs %in% ref_CX)/length(ref_CX)
+	  if (Nmet == 1) {
+	    Center	= diag(rep(1,nyox)) - rep(1,nyox)%o%(year_obs %in% ref_CX)/length(ref_CX)
+	  } else {
+	    Center	= array(0,dim=c(nyox,nyox))
+	    cpt = 0
+	    for (i in met_vec){
+	      Center[(cpt+1):(cpt+i),(cpt+1):(cpt+i)]  = diag(rep(1,i)) - rep(1,i)%o%(year_obs[(cpt+1):(cpt+i)] %in% ref_CX)/length(ref_CX)
+	      cpt = cpt+i
+	    }
+	  }
 
 	} else {
 
@@ -74,7 +116,7 @@ constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NU
 	# Other inputs : x, SX, y, SY
 	x	= S_mean
 	SX = Sigma_mod
-	y  = Center %*% apply(Xo,1,median)#Xo[,"median"]
+	y  = Center %*% apply(Xo,1,median)
 	SY = Center %*% Sigma_obs %*% t(Center)
 
 	# List of prior params
@@ -90,6 +132,72 @@ constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NU
 
 }
 
+#' Derive the posterior distribution of time series from a prior given
+#' observations (multiple metrics)
+
+#' \code{prior2posterior_met} applies the same functions as
+#' \code{prior2posterior} except that objects other than time series can be used
+#' as inputs. In addition it takes as input the response to all external
+#' forcings only, while \code{prior2posterior} can also consider the natural and
+#' anthropogenic forcings.
+#'
+#' @param X_in a 2-D array of dimension \code{[length(year), length(model)]},
+#'     which is a subset of an array returned by \code{x_fit}, containing the
+#'     best-estimated response to all external forcings and other metrics.
+#' @param Sigma_obs a sum of a matrix sampling observed internal variability
+#'     (tipically returned by \code{Sigma_mar2}) and a matrix sampling error
+#'     measurements in observations.
+#' @param Xo a vector or a matrix. If a vector, \code{Xo} is a time series of
+#'     observations over a given period and/or observed metrics, and must have
+#'     names corresponding to the years of observations (eg \code{1850:2020}) or
+#'     to the metric name. If a matrix, lines correspond to the years of
+#'     observations and/or observed metrics, and columns to different type of
+#'     observations, which sample measurement uncertainty.
+#' @param Sigma_obs a sum of a matrix sampling observed internal variability
+#'     and a matrix sampling error measurements in observations.
+#' @param Nres the whished number of realisations in the posterior gaussian
+#'     sample
+#' @param centering_CX a logical value indicating whether the constrained time
+#'     series must be in anomalies relative to a given period
+#'     (see \code{ref_CX})
+#' @param ref_CX a vector containing the years corresponding to the reference
+#'     period if \code{centering_CX = TRUE}. If \code{ref_CX = "year_obs"} then
+#'     the reference is the whole period sampled by \code{year}.
+#' @param met_vec an integer indicating the number of metrics.
+#'
+#' @return a list of two lists containing the parameters of the unconstrained
+#'     (prior) and constrained (posterior) gaussian distributions for the
+#'     response to all forcings. The first (second) list named
+#'     \code{uncons} (\code{cons}) contains two other lists, namely \code{mean}
+#'     and \code{var}. \code{mean} is a concatenation of time series
+#'     corresponding to the mean of the distribution for the different forcings.
+#'     The names of each element correspond to the folowing pattern :
+#'     \code{year_all}, eg \code{1850_all} for the mean response in
+#'     1850. \code{var} is the covariance matrix associated with \code{mu},
+#'     sampling the model uncertainty.
+#'
+#' @importFrom abind abind
+#'
+#' @examples
+#'
+#' @export
+prior2posterior_met = function(X_in,Xo,Sigma_obs,Nres=NULL,centering_CX=T,ref_CX="year_obs",met_vec=1) {
+
+  year_str = dimnames(X_in)$year
+  year_all = paste0(year_str,"_all")
+  dimnames(X_in)$year = year_all
+
+  # Calculates prior
+  ns = dim(X_in)[1]
+  S_mean = apply(X_in,1,mean)
+  Sigma_mod = var(t(X_in))
+
+  # X_cons
+  dist_post = constrain(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=centering_CX,ref_CX=ref_CX,met_vec=met_vec)
+
+  return(dist_post)
+
+}
 
 H_extract = function(S,Xo) {
 
@@ -114,19 +222,23 @@ H_extract = function(S,Xo) {
 	return(H_extract)
 }
 
-#' Computes a set of realisations from a multivariate Gaussian distribution, and organizes the output as a X-array with "usual" dimensions, ie year, sample, forcing
+#' Apply the gaussian conditioning theorem to derive a posterior distribution
+#' from a prior and observations
 #'
-#' More detailed description
-#'
-#' @param x	: a priori mean				background
-#' @param SX	: cov matrix of x				background error
-#' @param y	: observation					obs
-#' @param SY	: cov matrix of y				observational error
-#' @param H	: observation operator		observation operator
+#' @param x a vector of time series corresponding to the mean of the prior
+#' @param SX the covariance matrix corresponding to \code{x}. The number of
+#'     lines and columns must be equal to the length of \code{x}.
+#' @param y a vector of time series corresponding to the observations
+#' @param SY the covariance matrix corresponding to \code{y}. The number of
+#'     lines and columns must be equal to the length of \code{y}.
+#' @param H a matrix corresponding to an observation operator. The number of
+#'     lines (columns) must be equal to the length of \code{y}(\code{x}).
 #'
 #' @importFrom MASS ginv
 #'
-#' @return X a (ny,Nres+1,nf) array.
+#' @return a list of two lists. The first list \code{mean} contains the mean of
+#'     the posterior. The second list \code{var} contains the associated
+#'     covariance matrix.
 #'
 #' @examples
 #'
@@ -142,6 +254,20 @@ kriging = function(x, SX, y, SY, H) {
 	names(x_post_out) = names(x)
 	out = list(mean=x_post_out, var=SX_post)
 	return(out)
+}
+
+weighted.cov = function(x, wt, na.rm = FALSE)
+{
+  x <- as.matrix(x)
+  if (na.rm) {
+    x <- na.omit(x)
+    wt <- wt[-attr(x, "na.action")]
+  }
+  wt <- wt/sum(wt)
+  mean.x <- colSums(wt * x)
+  x <- sqrt(wt) * sweep(x, 2, mean.x, FUN = "-", check.margin = FALSE)
+  res <- crossprod(x)/sum(wt)
+  return(res)
 }
 
 
