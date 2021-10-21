@@ -61,6 +61,7 @@ plot_cx = function(X,X_Cons,obs_x,ofile,ref_plot=NULL,event=NA,ylim=NULL){
 	x_q05 = apply(x[,-1],1,quantile,.05)
 	xc_q95 = apply(x_cons[,-1],1,quantile,.95)
 	xc_q05 = apply(x_cons[,-1],1,quantile,.05)
+	
 	if (is.null(ylim)) {
 		ylim=range(obs_x,x_q05,x_q95,xc_q05,xc_q95)
 	} else {
