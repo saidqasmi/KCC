@@ -37,7 +37,7 @@
 #' @examples
 #'
 #' @export
-x_fit = function(Xd,Enat,Sigma,x_df,Nres,ant) {
+x_fit = function(Xd,Enat,x_df,Sigma=NULL,Nres=NULL,ant=T) {
 
   # Extract dimensions
   year_str = dimnames(Xd)$year
@@ -45,49 +45,57 @@ x_fit = function(Xd,Enat,Sigma,x_df,Nres,ant) {
   ny = length(year_str)
   Models = dimnames(Xd)$model
   Nmod = length(Models)
-  sample_str = c("be",paste0("nres",1:Nres))
 
   # Checks
   if (dim(Enat)[1]!=ny) {message("Error in x_fit_da.R: Xd and Enat have different ny"); return}
-  if (dim(Enat)[2]!=Nres+1) {message("Error in x_fit_da.R: Enat have wrong Nres (ie dim[2])"); return}
-
-  # Resize Sigma -- if needed
-  # Sigma can be eihter one single covariance matrix (the same for all models), or a collection of matrices (one for each model).
-  if (length(dim(Sigma))==2) {
-    v_mod = array(1,dim=Nmod,dimnames=list(model=Models))
-    Sigma = Sigma %o% v_mod
-  }
-
 
   # Preliminary spline calculation
-  #--------------------------------
   HatM = hatm(x_df,year)
-  Cov_spline = 0*Sigma
-  Cov_spline_12 = 0*Sigma
-  for (mod in Models) {
-    Cov_spline[,,mod] = t(HatM) %*% Sigma[,,mod] %*% HatM
-    Cov_spline_12[,,mod] = matrix_sqrt(Cov_spline[,,mod])
-  }
   # For extention: compute a Hat matrix (possibly with different methods), then apply to Xd...
 
-  # Design X
-  #----------
-  year_str = dimnames(Xd)$year
-  ny = length(year_str)
-  Models = dimnames(Xd)$model
-  Nmod = length(Models)
-  sample_str = c("be",paste0("nres",1:Nres))
+  if (!is.null(Sigma) & is.null(Nres)) {
+    message("Error: argument Nres is missing")
+    return()
+  } else if (is.null(Sigma) & !is.null(Nres)) {
+    message("Error: argument Sigma is missing")
+    return()
+  } else if (!is.null(Sigma) & !is.null(Nres)) {
+    sample_str = c("be",paste0("nres",1:Nres))
+    if (dim(Enat)[2]!=Nres+1) {message("Error in x_fit_da.R: Enat have wrong Nres (ie dim[2])"); return}
 
-  X = array(NA,dim=c(ny,Nres+1,3,Nmod),#
+    # Resize Sigma -- if needed
+    # Sigma can be eihter one single covariance matrix (the same for all models), or a collection of matrices (one for each model).
+    if (length(dim(Sigma))==2) {
+      v_mod = array(1,dim=Nmod,dimnames=list(model=Models))
+      Sigma = Sigma %o% v_mod
+    }
+    # preliminary spline calculation
+    Cov_spline = 0*Sigma
+    Cov_spline_12 = 0*Sigma
+    for (mod in Models) {
+      Cov_spline[,,mod] = t(HatM) %*% Sigma[,,mod] %*% HatM
+      Cov_spline_12[,,mod] = matrix_sqrt(Cov_spline[,,mod])
+    }
+
+    # Design X
+    X = array(NA,dim=c(ny,Nres+1,3,Nmod),#
+              dimnames=list(year=year_str,#
+                            sample=sample_str,#
+                            forc=c("nat","ant","all"),#
+                            model=Models))
+
+    beta_nat = array(NA,dim=c(Nres+1,Nmod),#
+                     dimnames=list(sample=sample_str,#
+                                   model=Models))
+  }
+
+  X_be = array(NA,dim=c(ny,3,Nmod),#
             dimnames=list(year=year_str,#
-                          sample=sample_str,#
                           forc=c("nat","ant","all"),#
                           model=Models))
 
-  beta_nat = array(NA,dim=c(Nres+1,Nmod),#
-                   dimnames=list(sample=sample_str,#
-                                 model=Models))
-
+  beta_nat_be = array(NA,dim=c(Nmod),#
+                   dimnames=list(model=Models))
 
   # Fit gam, then apply smoothing splines
   #---------------------------------------
@@ -98,33 +106,46 @@ x_fit = function(Xd,Enat,Sigma,x_df,Nres,ant) {
     x = Xd[,mod]
     # Best estimate
     gam_be = gam(x ~ s(year,df=x_df) + Enat[,1])		# Preliminary be
-    #save(gam_be,file="toto.Rdata")
-    beta_nat["be",mod] = gam_be$coefficients[3]					# beta_nat
-    x_nat_brut = beta_nat["be",mod]*Enat[,1]						# Enat
+    beta_nat_be[mod] = gam_be$coefficients[3]					# beta_nat
+    x_nat_brut = beta_nat_be[mod]*Enat[,1]						# Enat
     x_nat_removed_be = x - x_nat_brut								# x - Enat
     x_ant_uncentered_be = HatM %*% x_nat_removed_be				# mu + f(t)
     x_ant_be = x_ant_uncentered_be - x_ant_uncentered_be[1]	# f(t)
-    X[,"be","ant",mod] = x_ant_be
-    X[,"be","all",mod] = mean(x) + x_nat_brut - mean(x_nat_brut) + x_ant_be - mean(x_ant_be)	# = 1 + Enat + f(t)
-    # Rough estimate of beta_nat variance (Gaussian distribution is assumed in resampling) -- OLS formula
-    sd_beta_nat = sqrt(t(Enat[,1])%*%Sigma[,,mod]%*%Enat[,1] / (t(Enat[,1])%*%Enat[,1])^2)
-    # Resampling
-    for (i in 1:Nres){
-      gam_re = gam(x ~ s(year,df=x_df) + Enat[,i+1])
-      beta_nat[i+1,mod] = gam_re$coefficients[3]+sd_beta_nat*rnorm(1)	# beta_nat; Possibly sd_beta_nat should be calculated for each Enat_resampled...
-      x_nat_brut_re = beta_nat[i+1,mod]*Enat[,i+1]					# Enat
-      x_nat_removed_re = x - x_nat_brut_re										# x - Enat
-      x_ant_uncentered_re = HatM %*% x_nat_removed_re + Cov_spline_12[,,mod] %*% rnorm(ny)	# mu + f(t)
-      X[,i+1,"ant",mod] = x_ant_uncentered_re - x_ant_uncentered_re[1]				# f(t)
-      X[,i+1,"all",mod] = mean(x) + x_nat_brut_re - mean(x_nat_brut_re) + X[,i+1,"ant",mod] - mean(X[,i+1,"ant",mod])	# = 1 + Enat + f(t)
+    X_be[,"ant",mod] = x_ant_be
+    X_be[,"all",mod] = mean(x) + x_nat_brut - mean(x_nat_brut) + x_ant_be - mean(x_ant_be)	# = 1 + Enat + f(t)
+    X_be[,"nat",mod] = X_be[,"all",mod] - X_be[,"ant",mod]	# X_nat = 1 + Enat
+
+    if (!is.null(Sigma) & !is.null(Nres)) {
+      # Rough estimate of beta_nat variance (Gaussian distribution is assumed in resampling) -- OLS formula
+      sd_beta_nat = sqrt(t(Enat[,1])%*%Sigma[,,mod]%*%Enat[,1] / (t(Enat[,1])%*%Enat[,1])^2)
+      # Resampling
+      for (i in 1:Nres){
+        gam_re = gam(x ~ s(year,df=x_df) + Enat[,i+1])
+        beta_nat[i+1,mod] = gam_re$coefficients[3]+sd_beta_nat*rnorm(1)	# beta_nat; Possibly sd_beta_nat should be calculated for each Enat_resampled...
+        x_nat_brut_re = beta_nat[i+1,mod]*Enat[,i+1]					# Enat
+        x_nat_removed_re = x - x_nat_brut_re										# x - Enat
+        x_ant_uncentered_re = HatM %*% x_nat_removed_re + Cov_spline_12[,,mod] %*% rnorm(ny)	# mu + f(t)
+        X[,i+1,"ant",mod] = x_ant_uncentered_re - x_ant_uncentered_re[1]				# f(t)
+        X[,i+1,"all",mod] = mean(x) + x_nat_brut_re - mean(x_nat_brut_re) + X[,i+1,"ant",mod] - mean(X[,i+1,"ant",mod])	# = 1 + Enat + f(t)
+      }
+      X[,"be","ant",mod] = X_be[,"ant",mod]
+      X[,"be","all",mod] = X_be[,"all",mod]
+      X[,,"nat",mod] = X[,,"all",mod] - X[,,"ant",mod]	# X_nat = 1 + Enat
     }
-    X[,,"nat",mod] = X[,,"all",mod] - X[,,"ant",mod]	# X_nat = 1 + Enat
   }
 
-  if (ant) {
-    return(X)
-  } else {
-    return(X[,,c("all","nat"),])
+  if (is.null(Sigma) & is.null(Nres)) {
+    if (ant) {
+      return(X_be)
+    } else {
+      return(X_be[,c("all","nat"),])
+    }
+  } else if (!is.null(Sigma) & !is.null(Nres)) {
+    if (ant) {
+      return(X)
+    } else {
+      return(X[,,c("all","nat"),])
+    }
   }
 
 }

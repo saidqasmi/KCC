@@ -5,7 +5,7 @@
 \title{Decomposition of simulated time series into natural and anthropogenic
 responses}
 \usage{
-x_fit(Xd, Enat, Sigma, x_df, Nres, ant)
+x_fit(Xd, Enat, x_df, Sigma = NULL, Nres = NULL, ant = T)
 }
 \arguments{
 \item{Xd}{a 2-D array of dimension \code{[length(year),length(model)]}
@@ -17,10 +17,10 @@ all models.}
 \item{Enat}{a 2-D array of dimension \code{[length(year),Nres]}
 containing the response to natural forcings.}
 
+\item{x_df}{the number of degrees of freedom for the smoothing by splines}
+
 \item{Sigma}{the covariance matrix accounting for uncertainty in internal
 variability}
-
-\item{x_df}{the number of degrees of freedom for the smoothing by splines}
 
 \item{Nres}{the number of realisations in the gaussian sample of
 \code{Enat}}

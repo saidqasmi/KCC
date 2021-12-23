@@ -1,10 +1,10 @@
 #' Derive the posterior distribution of time series from a prior given
 #' observations
 #'
-#' \code{prior2posterior} applies the gaussian conditioning theorem to a prior
-#' distribution of time simulated responses to several external forcings
-#' (natural, anthropogenic or both) given observations (see equations 12 and 13
-#' in Supplementary Material of Qasmi and Ribes, 2021).
+#' \code{prior2posterior} applies the gaussian conditioning theorem to an array
+#' of time series corresponding to the simulated responses to several external
+#' forcings (natural, anthropogenic or both) given observations (see equations
+#' 12 and 13 in Supplementary Material of Qasmi and Ribes, 2021).
 #'
 #' @param X_fit a 4-D array of dimension
 #'     \code{[length(year), Nres, length(forcing), length(model)]} returned by
@@ -43,7 +43,7 @@
 #' @examples
 #'
 #' @export
-prior2posterior = function(X_fit,Xo,Sigma_obs,Nres=NULL,centering_CX=T,ref_CX="year_obs",S_mean=NULL,Sigma_mod=NULL,weights=NULL,met_vec=1) {
+prior2posterior = function(X_fit,Xo,Sigma_obs,Nres=NULL,centering_CX=T,ref_CX="year_obs",S_mean=NULL,Sigma_mod=NULL,weights=NULL) {
 
 	year = dimnames(X_fit)$year
 
@@ -67,17 +67,60 @@ prior2posterior = function(X_fit,Xo,Sigma_obs,Nres=NULL,centering_CX=T,ref_CX="y
 	}
 
 	# constraining
-	X_cons = constrain(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=centering_CX,ref_CX=ref_CX,met_vec=met_vec)
+	X_cons = constrain(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=centering_CX,ref_CX=ref_CX)
 
 	return(X_cons)
 }
 
-constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NULL,met_vec=1) {
+#' Derive the posterior distribution of time series from a prior given
+#' observations
+#'
+#' \code{constrain} applies the gaussian conditioning theorem to a prior
+#' distribution for several external forcings (natural, anthropogenic or both)
+#' given observations (see equations 12 and 13 in Supplementary Material of
+#' Qasmi and Ribes, 2021).
+#'
+#' @param S_mean a vector accounting for the multi-model mean.
+#' @param S_mod a covariance matrix accounting for model uncertainty.
+#' @param Xo a vector or a matrix. If a vector, \code{Xo} is a time series of
+#'     observations over a given period, and must have names corresponding to
+#'     the years of observations (eg \code{1850:2020}). If a matrix, lines
+#'     correspond to the years of observations and columns to different type of
+#'     observations, which sample measurement uncertainty.
+#' @param Sigma_obs a sum of a matrix sampling observed internal variability
+#'     (tipically returned by \code{Sigma_mar2}) + a matrix sampling error
+#'     measurements in observations (see Methods in Qasmi and Ribes, 2021).
+#' @param Nres the whished number of realisations in the posterior gaussian
+#'     sample
+#' @param centering_CX a logical value indicating whether the constrained time
+#'     series must be in anomalies relative to a given period
+#'     (see \code{ref_CX})
+#' @param ref_CX a vector containing the years corresponding to the reference
+#'     period if \code{centering_CX = TRUE}.
+#'    models to account for dependencies between models if needed.
+#'
+#' @return a list of two lists containing the parameters of the unconstrained
+#'     (prior) and constrained (posterior) gaussian distributions for the
+#'     responses to the forcings in \code{X_fit}. The first (second) list named
+#'     \code{uncons} (\code{cons}) contains two other lists, namely \code{mean}
+#'     and \code{var}. \code{mean} is a concatenation of time series
+#'     corresponding to the mean of the distribution for the different forcings.
+#'     The name of each element follows the pattern: \code{year_forcing}, eg
+#'     \code{1850_nat} for the mean natural response in 1850. \code{var} is the
+#'     covariance matrix associated with \code{mu}, sampling the model
+#'     uncertainty.
+#'
+#' @examples
+#'
+#' @export
+constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NULL) {
 
 	# Time axis
 	year_obs = dimnames(Xo)$year
 	nyox  = length(year_obs)
-	Nmet = length(met_vec)
+	locs_in_obs = sub("[0-9][0-9][0-9][0-9]_?","",year_obs)
+	locs = unique(locs_in_obs)
+	nl = length(locs)
 
 	# Matrix H: selecting "all", centering, extracting relevant years
 	S_mean_array = as.array(S_mean)
@@ -85,30 +128,33 @@ constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NU
 	H_extract = H_extract(S_mean_array,Xo)
 
 	if (centering_CX) {
-
-		if (is.null(ref_CX) | ref_CX == "year_obs")	{
-
-			ref_CX = year_obs
-
-		} else if (!prod(ref_CX %in% year_obs)) {
-
-			stop("Error in constrain(): Reference period is inconsistent with obs")
-		}
-
-	  if (Nmet == 1) {
-	    Center	= diag(rep(1,nyox)) - rep(1,nyox)%o%(year_obs %in% ref_CX)/length(ref_CX)
-	  } else {
-	    Center	= array(0,dim=c(nyox,nyox))
-	    cpt = 0
-	    for (i in met_vec){
-	      Center[(cpt+1):(cpt+i),(cpt+1):(cpt+i)]  = diag(rep(1,i)) - rep(1,i)%o%(year_obs[(cpt+1):(cpt+i)] %in% ref_CX)/length(ref_CX)
-	      cpt = cpt+i
+	  # Initialize ref_CX (if needed)
+	  if (is.null(ref_CX) | identical(ref_CX,"year_obs"))	{
+	    ref_CX = NULL
+	    for (iloc in locs) {
+	      is_iloc = ( locs_in_obs == iloc )
+	      ref_CX = c(ref_CX,year_obs[is_iloc])
 	    }
+	  }
+	  locs_in_ref_CX = sub("[0-9][0-9][0-9][0-9]_?","",ref_CX)
+	  if (!prod(ref_CX %in% year_obs)) {
+	    stop("Error in constrain(): Reference period is inconsistent with obs")
+	  }
+	  if ( !identical(sort(locs),sort(unique(locs_in_ref_CX))) ) {
+	    stop("Error in constrain(): Missing ref_CX for some location")
+	  }
+	  Center = diag(rep(1,nyox))	# a (nyox,nyox) identity matrix
+	  for (iloc in locs) {
+	    is_iloc = ( locs_in_obs == iloc )
+	    nyox_iloc = sum(is_iloc)
+	    year_obs_iloc = year_obs[is_iloc]
+	    ref_CX_iloc = ref_CX[ locs_in_ref_CX == iloc]
+	    Center[is_iloc,is_iloc] = diag(rep(1,nyox_iloc)) - rep(1,nyox_iloc)%o%(year_obs_iloc %in% ref_CX_iloc)/length(ref_CX_iloc)
 	  }
 
 	} else {
 
-		Center	= diag(rep(1,nyox))
+	  Center	= diag(rep(1,nyox))
 	}
 
 	H = Center %*% H_extract			# Centering * extracting
@@ -132,73 +178,6 @@ constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NU
 
 }
 
-#' Derive the posterior distribution of time series from a prior given
-#' observations (multiple metrics)
-
-#' \code{prior2posterior_met} applies the same functions as
-#' \code{prior2posterior} except that objects other than time series can be used
-#' as inputs. In addition it takes as input the response to all external
-#' forcings only, while \code{prior2posterior} can also consider the natural and
-#' anthropogenic forcings.
-#'
-#' @param X_in a 2-D array of dimension \code{[length(year), length(model)]},
-#'     which is a subset of an array returned by \code{x_fit}, containing the
-#'     best-estimated response to all external forcings and other metrics.
-#' @param Sigma_obs a sum of a matrix sampling observed internal variability
-#'     (tipically returned by \code{Sigma_mar2}) and a matrix sampling error
-#'     measurements in observations.
-#' @param Xo a vector or a matrix. If a vector, \code{Xo} is a time series of
-#'     observations over a given period and/or observed metrics, and must have
-#'     names corresponding to the years of observations (eg \code{1850:2020}) or
-#'     to the metric name. If a matrix, lines correspond to the years of
-#'     observations and/or observed metrics, and columns to different type of
-#'     observations, which sample measurement uncertainty.
-#' @param Sigma_obs a sum of a matrix sampling observed internal variability
-#'     and a matrix sampling error measurements in observations.
-#' @param Nres the whished number of realisations in the posterior gaussian
-#'     sample
-#' @param centering_CX a logical value indicating whether the constrained time
-#'     series must be in anomalies relative to a given period
-#'     (see \code{ref_CX})
-#' @param ref_CX a vector containing the years corresponding to the reference
-#'     period if \code{centering_CX = TRUE}. If \code{ref_CX = "year_obs"} then
-#'     the reference is the whole period sampled by \code{year}.
-#' @param met_vec an integer indicating the number of metrics.
-#'
-#' @return a list of two lists containing the parameters of the unconstrained
-#'     (prior) and constrained (posterior) gaussian distributions for the
-#'     response to all forcings. The first (second) list named
-#'     \code{uncons} (\code{cons}) contains two other lists, namely \code{mean}
-#'     and \code{var}. \code{mean} is a concatenation of time series
-#'     corresponding to the mean of the distribution for the different forcings.
-#'     The names of each element correspond to the folowing pattern :
-#'     \code{year_all}, eg \code{1850_all} for the mean response in
-#'     1850. \code{var} is the covariance matrix associated with \code{mu},
-#'     sampling the model uncertainty.
-#'
-#' @importFrom abind abind
-#'
-#' @examples
-#'
-#' @export
-prior2posterior_met = function(X_in,Xo,Sigma_obs,Nres=NULL,centering_CX=T,ref_CX="year_obs",met_vec=1) {
-
-  year_str = dimnames(X_in)$year
-  year_all = paste0(year_str,"_all")
-  dimnames(X_in)$year = year_all
-
-  # Calculates prior
-  ns = dim(X_in)[1]
-  S_mean = apply(X_in,1,mean)
-  Sigma_mod = var(t(X_in))
-
-  # X_cons
-  dist_post = constrain(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=centering_CX,ref_CX=ref_CX,met_vec=met_vec)
-
-  return(dist_post)
-
-}
-
 H_extract = function(S,Xo) {
 
 	# Time axis
@@ -209,8 +188,10 @@ H_extract = function(S,Xo) {
 	ny_obs  = length(year_obs_str)
 
 	# Obs from S
-	year_obs_all = paste0(year_obs_str,"_all")
-	is_obs_in_year = year_S_str %in% year_obs_all
+	if (sum(grep("_all",year_S_str))) {
+	  year_obs_str = paste0(year_obs_str,"_all")
+	}
+	is_obs_in_year = year_S_str %in% year_obs_str
 
 	if (sum(is_obs_in_year)!=ny_obs) {
 		message("Error in H_extract.R: observed years not available in models");

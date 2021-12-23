@@ -23,7 +23,7 @@
 #' @examples
 #'
 #' @export
-plot_scx = function(X_Cons,obs_x,ofile,ref_plot=NULL,event=NA, ylim=NULL){
+plot_scx = function(X_Cons,obs_x,ofile,ref_plot=NULL,event=NA,ylim=NULL){
 	pdf(ofile)
 		plot_cx(X_Cons[,,"uncons"],#
 				  X_Cons[,,"cons"],#
@@ -54,14 +54,11 @@ plot_cx = function(X,X_Cons,obs_x,ofile,ref_plot=NULL,event=NA,ylim=NULL){
 		event_year = event$year
 	}
 
-	pdf(ofile)
-
 	par(font.lab=2,font.axis=2,cex.lab=1.2,mar=c(4,4,1,1),mgp=c(2.5,.7,0))
 	x_q95 = apply(x[,-1],1,quantile,.95)
 	x_q05 = apply(x[,-1],1,quantile,.05)
 	xc_q95 = apply(x_cons[,-1],1,quantile,.95)
 	xc_q05 = apply(x_cons[,-1],1,quantile,.05)
-	
 	if (is.null(ylim)) {
 		ylim=range(obs_x,x_q05,x_q95,xc_q05,xc_q95)
 	} else {
@@ -78,6 +75,5 @@ plot_cx = function(X,X_Cons,obs_x,ofile,ref_plot=NULL,event=NA,ylim=NULL){
 	lines(year,x[,1]		,lwd=1.5,col=rgb(colb[1],colb[2],colb[3],alpha=.5))
 	lines(year,x_cons[,1],lwd=2,col=rgb(colb[1],colb[2],colb[3],alpha=1))
 
-	dev.off()
-
 }
+
