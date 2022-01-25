@@ -19,23 +19,24 @@ containing the response to natural forcings.}
 
 \item{x_df}{the number of degrees of freedom for the smoothing by splines}
 
-\item{Sigma}{the covariance matrix accounting for uncertainty in internal
-variability}
+\item{Sigma}{the optional covariance matrix accounting for uncertainty in
+internal variability}
 
 \item{Nres}{the number of realisations in the gaussian sample of
-\code{Enat}}
+\code{Enat} if \code{Sigma} is provided}
 
 \item{ant}{a logical value indicating whether the anthropogenic response
 should be returned}
 }
 \value{
-a 4-D array of dimension
-    \code{[length(year), Nres+1, length(forcing), length(model)]}, containing
-    the response to several forcings. \code{forcing} is a character vector
-    containing the types of external forcing: \code{nat} for natural,
-    \code{all} for all forcings, \code{ant} for anthropogenic (if flagged at
-    the function call). A best-estimate is provided with \code{Nres}
-    realisations sampling uncertainty in each model.
+a 3-D array of dimension
+    \code{[length(year), length(forcing), length(model)]} (or 4-D if
+    \code{Sigma} is provided), containing the response to several forcings.
+    \code{forcing} is a character vector containing the types of external
+    forcing: \code{nat} for natural, \code{all} for all forcings, \code{ant}
+    for anthropogenic (if flagged at the function call). A best-estimate is
+    provided with \code{Nres} realisations sampling uncertainty in each model
+    .
 }
 \description{
 \code{x_fit} fits a Generalized Additive Model (GAM, see equation 7 in Qasmi

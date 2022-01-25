@@ -18,8 +18,8 @@ prior2posterior(
 )
 }
 \arguments{
-\item{X_fit}{a 4-D array of dimension
-\code{[length(year), Nres, length(forcing), length(model)]} returned by
+\item{X_fit}{a 3-D array of dimension
+\code{[length(year), length(forcing), length(model)]} returned by
 \code{x_fit}.}
 
 \item{Xo}{a vector or a matrix. If a vector, \code{Xo} is a time series of
