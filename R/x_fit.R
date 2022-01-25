@@ -13,21 +13,22 @@
 #'     all models.
 #' @param Enat a 2-D array of dimension \code{[length(year),Nres]}
 #'     containing the response to natural forcings.
-#' @param Sigma the covariance matrix accounting for uncertainty in internal
-#'     variability
 #' @param x_df the number of degrees of freedom for the smoothing by splines
+#' @param Sigma the optional covariance matrix accounting for uncertainty in
+#'     internal variability
 #' @param Nres the number of realisations in the gaussian sample of
-#'     \code{Enat}
+#'     \code{Enat} if \code{Sigma} is provided
 #' @param ant a logical value indicating whether the anthropogenic response
 #'     should be returned
 #'
-#' @return a 4-D array of dimension
-#'     \code{[length(year), Nres+1, length(forcing), length(model)]}, containing
-#'     the response to several forcings. \code{forcing} is a character vector
-#'     containing the types of external forcing: \code{nat} for natural,
-#'     \code{all} for all forcings, \code{ant} for anthropogenic (if flagged at
-#'     the function call). A best-estimate is provided with \code{Nres}
-#'     realisations sampling uncertainty in each model.
+#' @return a 3-D array of dimension
+#'     \code{[length(year), length(forcing), length(model)]} (or 4-D if
+#'     \code{Sigma} is provided), containing the response to several forcings.
+#'     \code{forcing} is a character vector containing the types of external
+#'     forcing: \code{nat} for natural, \code{all} for all forcings, \code{ant}
+#'     for anthropogenic (if flagged at the function call). A best-estimate is
+#'     provided with \code{Nres} realisations sampling uncertainty in each model
+#'     .
 #'
 #' @importFrom stats lm
 #' @importFrom stats rnorm

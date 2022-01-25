@@ -6,8 +6,8 @@
 #' forcings (natural, anthropogenic or both) given observations (see equations
 #' 12 and 13 in Supplementary Material of Qasmi and Ribes, 2021).
 #'
-#' @param X_fit a 4-D array of dimension
-#'     \code{[length(year), Nres, length(forcing), length(model)]} returned by
+#' @param X_fit a 3-D array of dimension
+#'     \code{[length(year), length(forcing), length(model)]} returned by
 #'     \code{x_fit}.
 #' @param Xo a vector or a matrix. If a vector, \code{Xo} is a time series of
 #'     observations over a given period, and must have names corresponding to
@@ -49,8 +49,8 @@ prior2posterior = function(X_fit,Xo,Sigma_obs,Nres=NULL,centering_CX=T,ref_CX="y
 
 	if (is.null(S_mean) | is.null(Sigma_mod)) {
 		# Calculates prior
-		S = abind(X_fit[,"be","all",],#
-				 X_fit[,"be","nat",],#
+		S = abind(X_fit[,"all",],#
+				 X_fit[,"nat",],#
 				 along=1,use.dnns=T,
 				 new.names=list(year=c(paste0(as.character(year),"_all"),#
 											  paste0(as.character(year),"_nat")),#
