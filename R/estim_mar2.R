@@ -67,6 +67,19 @@ Sigma_mar2 = function(theta,n) {
   return(Sigma)
 }
 
+#' Compute the covariance matrix corresponding to an autoregressive processes of
+#' order 1
+#'
+#' @param alpha a numeric corresponding to the AR parameter at lag 1
+#'
+#' @param n the whished number of lines/columns in the covariance matrix,
+#'     usually corresponds to the number of years of observations.
+#'
+#' @return a symmetric matrix corresponding to the AR process.
+#'
+#' @examples
+#'
+#' @export
 Sigma_ar = function(alpha,n) {
   Sigma = array(NA,dim=c(n,n))
   for (i in 1:n) {

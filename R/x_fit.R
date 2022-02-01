@@ -151,7 +151,18 @@ x_fit = function(Xd,Enat,x_df,Sigma=NULL,Nres=NULL,ant=T) {
 
 }
 
-
+#' Calculate the 'smoothing matrix' of a spline smoothing
+#'
+#' @param df a numeric, the equivalent degrees of freedom in the spline
+#' smoothing.
+#'
+#' @param year a vector of length n, giving the years of the time-series to
+#' smooth.
+#'
+#' @return a nxn matrix, the smoothing matrix. Applying a spline smoothing is
+#' equivalent to multiplying by this matrix.
+#'
+#' @export
 hatm = function(df,year) {
 	base_spline(length(year),ones(year))
 	HatM = proj_dl(df)
