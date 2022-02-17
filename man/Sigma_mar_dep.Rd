@@ -5,11 +5,14 @@
 \title{Compute the covariance matrix corresponding to a mixture of four
 autoregressive (MAR) processes of order 1 and their link.}
 \usage{
-Sigma_mar_dep(theta, n)
+Sigma_mar_dep(theta, y)
 }
 \arguments{
 \item{theta}{a vector containing the MAR parameters returned by
 \code{estim_mar_dep} or \code{estim_mar_dep_full}}
+
+\item{y}{a list of the two time series associated with
+\code{theta1} and \code{theta2}}
 }
 \value{
 a symmetric matrix corresponding to the combination of the two MAR

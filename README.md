@@ -19,7 +19,7 @@ Content
 Related Publications
 --------------------
 
-Qasmi, S. and Ribes, A. (in revision): Reducing uncertainty in local climate projections _Journal of Climate_ DOI:  <a href="https://doi.org/10.21203/rs.3.rs-364943/v1">10.21203/rs.3.rs-364943/v1</a>
+Qasmi, S. and Ribes, A. (in revision): Reducing uncertainty in local climate projections _in preparation_ DOI:  <a href="https://doi.org/10.21203/rs.3.rs-364943/v3">10.21203/rs.3.rs-364943/v3</a>
 
 Ribes, A. et al. (2021): Making climate projections conditional on historical observations. _Science Advances_, 7, eabc0671, DOI: <a href="https://doi.org/10.1126/sciadv.abc0671">10.1126/sciadv.abc0671</a>
 

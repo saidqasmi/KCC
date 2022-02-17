@@ -4,7 +4,7 @@
 \alias{estim_mar_dep}
 \title{Compute the parameter lambda between two MAR by the method of moments}
 \usage{
-estim_mar_dep(theta1, theta2, y, nvar = 2)
+estim_mar_dep(theta1, theta2, y)
 }
 \arguments{
 \item{theta1}{a vector containing the MAR parameters returned by
@@ -15,10 +15,8 @@ related to global internal variability)}
 \code{estim_mar2_link} associated with a second time series (eg residuals
 related to local internal variability)}
 
-\item{y}{a vector of the concatenated time series associated with
+\item{y}{a list of the two time series associated with
 \code{theta1} and \code{theta2}}
-
-\item{nvar}{the number of residuals (currently set to 2)}
 }
 \value{
 a vector of parameters containing \code{theta1} and \code{theta2},

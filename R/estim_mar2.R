@@ -154,9 +154,8 @@ ilinkf_dep = function(theta_mod) {
 #' @param theta2 a vector containing the MAR parameters returned by
 #'     \code{estim_mar2_link} associated with a second time series (eg residuals
 #'     related to local internal variability)
-#' @param y a vector of the concatenated time series associated with
+#' @param y a list of the two time series associated with
 #'     \code{theta1} and \code{theta2}
-#' @param nvar the number of residuals (currently set to 2)
 #'
 #' @return a vector of parameters containing \code{theta1} and \code{theta2},
 #'     and the parameter lambda.
@@ -164,14 +163,15 @@ ilinkf_dep = function(theta_mod) {
 #' @examples
 #'
 #' @export
-estim_mar_dep = function(theta1, theta2, y, nvar=2) {
+estim_mar_dep = function(theta1, theta2, y) {
 	# nvar: number of blocks (ie spatial dimension)
-	ny = length(y)
-	if (nvar != 2) stop("Error in estim_mar_dep: nb is not 2")
-	n = ny/nvar
-	if (n != round(n)) stop("Error in estim_mar_dep: wrong size of y")
-	y1 = y[1:n]
-	y2 = y[1:n+n]
+	nvar = length(y)
+	if (nvar < 2) stop("Error in estim_mar_dep: nb of residuals is not 2")
+
+	y1 = y[[1]]
+	y2 = y[[2]]
+
+	year_common = intersect(names(y1),names(y2))
 
 	theta = rep(NA,9)
 	names(theta) = c("v1_slow","v2_slow","a1_slow","a2_slow","v1_fast","v2_fast","a1_fast","a2_fast","lambda")
@@ -198,7 +198,7 @@ estim_mar_dep = function(theta1, theta2, y, nvar=2) {
 	cov_max = sqrt(theta["v1_fast"]) * sqrt(theta["v2_fast"]) * sqrt(1-theta["a1_fast"]^2) * sqrt(1-theta["a2_fast"]^2) / (1-theta["a1_fast"]*theta["a2_fast"]) + #
 				 sqrt(theta["v1_slow"]) * sqrt(theta["v2_slow"]) * sqrt(1-theta["a1_slow"]^2) * sqrt(1-theta["a2_slow"]^2) / (1-theta["a1_slow"]*theta["a2_slow"])
 	corr_max = cov_max / sqrt(v1_tot * v2_tot)
-	cc = cor(y1,y2)
+	cc = cor(y1[year_common],y2[year_common])
 	theta["lambda"] = max(min(cc/corr_max,1),-1)
 
 	return(theta)
@@ -271,6 +271,9 @@ estim_mar_dep_full = function(y) {
 #' @param theta a vector containing the MAR parameters returned by
 #'     \code{estim_mar_dep} or \code{estim_mar_dep_full}
 #'
+#' @param y a list of the two time series associated with
+#'     \code{theta1} and \code{theta2}
+#'
 #' @return a symmetric matrix corresponding to the combination of the two MAR
 #'     models. The number of lines/columns in the covariance matrix, usually
 #'     corresponds to the length of \code{y}.
@@ -278,28 +281,34 @@ estim_mar_dep_full = function(y) {
 #' @examples
 #'
 #' @export
-Sigma_mar_dep = function(theta,n) {
-	Sigma = array(NA,dim=c(2*n,2*n))
+Sigma_mar_dep = function(theta,y) {
+  # nvar: number of blocks (ie spatial dimension)
+  nvar = length(y)
+  if (nvar < 2) stop("Error in estim_mar_dep: nb of residuals is not 2")
+  n1 = lengths(y)[1]
+  n2 = lengths(y)[2]
+
+  Sigma = array(NA,dim=c(n1+n2,n1+n2))
 	# (1,1)-block
 	theta_11 = theta[c("v1_slow","a1_slow","v1_fast","a1_fast")]
 	names(theta_11) = c("var1_ar1","alpha1_ar1","var2_ar1","alpha2_ar1")
-	Sigma[1:n,1:n] = Sigma_mar2(theta_11,n)
+	Sigma[1:n1,1:n1] = Sigma_mar2(theta_11,n1)
 	# (2,2)-block
 	theta_22 = theta[c("v2_slow","a2_slow","v2_fast","a2_fast")]
 	names(theta_22) = c("var1_ar1","alpha1_ar1","var2_ar1","alpha2_ar1")
-	Sigma[1:n+n,1:n+n] = Sigma_mar2(theta_22,n)
+	Sigma[(n1+1):(n1+n2),(n1+1):(n1+n2)] = Sigma_mar2(theta_22,n2)
 	# (1,2) and (2,1) blocks
-	Sigma [ 1:n, 1:n+n ] = theta["lambda"] * #
-		( cov_ar_full_dep(theta["v1_slow"],theta["a1_slow"],theta["v2_slow"],theta["a2_slow"],n) + #
-		  cov_ar_full_dep(theta["v1_fast"],theta["a1_fast"],theta["v2_fast"],theta["a2_fast"],n) )
-	Sigma [ 1:n+n, 1:n ] = t( Sigma [1:n, 1:n+n] )
+	Sigma [ 1:n1, (n1+1):(n1+n2) ] = theta["lambda"] * #
+		( cov_ar_full_dep(theta["v1_slow"],theta["a1_slow"],theta["v2_slow"],theta["a2_slow"],n1,n2) + #
+		  cov_ar_full_dep(theta["v1_fast"],theta["a1_fast"],theta["v2_fast"],theta["a2_fast"],n1,n2) )
+	Sigma [ (n1+1):(n1+n2), 1:n1 ] = t( Sigma [1:n1, (n1+1):(n1+n2)] )
 	return(Sigma)
 }
 
-cov_ar_full_dep = function(v1,a1,v2,a2,n) {
-	Cov = array(NA,dim=c(n,n))
-	for (i in 1:n) {
-		for (j in 1:n) {
+cov_ar_full_dep = function(v1,a1,v2,a2,n1,n2) {
+	Cov = array(NA,dim=c(n1,n2))
+	for (i in 1:n1) {
+		for (j in 1:n2) {
 			if (i>=j)	Cov[i,j] = a1^(i-j)
 			else			Cov[i,j] = a2^(j-i)
 		}
