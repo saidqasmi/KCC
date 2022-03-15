@@ -125,7 +125,7 @@ constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NU
 	# Matrix H: selecting "all", centering, extracting relevant years
 	S_mean_array = as.array(S_mean)
 	dimnames(S_mean_array) = list(year=names(S_mean))
-	H_extract = H_extract(S_mean_array,Xo)
+	H_extract = H_extract(S_mean,Xo)
 
 	if (centering_CX) {
 	  # Initialize ref_CX (if needed)
@@ -180,27 +180,37 @@ constrain = function(S_mean,Sigma_mod,Xo,Sigma_obs,Nres,centering_CX=T,ref_CX=NU
 
 H_extract = function(S,Xo) {
 
-	# Time axis
-	year_S_str = dimnames(S)$year
-	year_obs_str = dimnames(Xo)$year
-	# Dimensions
-	ny = length(year_S_str)
-	ny_obs  = length(year_obs_str)
+  # Time axis
+  if (is.array(S)) {
+    year_S_str = dimnames(S)$year
+  } else {
+    year_S_str = names(S)
+  }
 
-	# Obs from S
-	if (sum(grep("_all",year_S_str))) {
-	  year_obs_str = paste0(year_obs_str,"_all")
-	}
-	is_obs_in_year = year_S_str %in% year_obs_str
+  if (is.array(Xo)) {
+    year_obs_str = dimnames(Xo)$year
+  } else {
+    year_obs_str = names(Xo)
+  }
 
-	if (sum(is_obs_in_year)!=ny_obs) {
-		message("Error in H_extract.R: observed years not available in models");
-		return()
-	}
+  if (!sum(grep("_all",year_obs_str))) {
+    year_obs_str = paste0(year_obs_str,"_all")
+  }
 
-	H_extract = array(0,dim=c(ny_obs,ny))
-	H_extract[,is_obs_in_year] = diag(rep(1,ny_obs))
-	return(H_extract)
+  # Dimensions
+  ny = length(year_S_str)
+  ny_obs  = length(year_obs_str)
+
+  # Obs from S
+  is_obs_in_year = year_S_str %in% year_obs_str
+  if (sum(is_obs_in_year)!=ny_obs) {
+    message("Error in H_extract(): observed years not available in models");
+    return()
+  }
+
+  H_extract = array(0,dim=c(ny_obs,ny))
+  H_extract[,is_obs_in_year] = diag(rep(1,ny_obs))
+  return(H_extract)
 }
 
 #' Apply the gaussian conditioning theorem to derive a posterior distribution
