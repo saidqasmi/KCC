@@ -285,8 +285,14 @@ Sigma_mar_dep = function(theta,y) {
   # nvar: number of blocks (ie spatial dimension)
   nvar = length(y)
   if (nvar < 2) stop("Error in estim_mar_dep: nb of residuals is not 2")
-  n1 = lengths(y)[1]
-  n2 = lengths(y)[2]
+
+	y1 = y[[1]]
+	y2 = y[[2]]
+	year1 = names(y1)
+	year2 = names(y2)
+	
+  n1 = length(y1)
+  n2 = length(y2)
 
   Sigma = array(NA,dim=c(n1+n2,n1+n2))
 	# (1,1)-block
@@ -299,18 +305,21 @@ Sigma_mar_dep = function(theta,y) {
 	Sigma[(n1+1):(n1+n2),(n1+1):(n1+n2)] = Sigma_mar2(theta_22,n2)
 	# (1,2) and (2,1) blocks
 	Sigma [ 1:n1, (n1+1):(n1+n2) ] = theta["lambda"] * #
-		( cov_ar_full_dep(theta["v1_slow"],theta["a1_slow"],theta["v2_slow"],theta["a2_slow"],n1,n2) + #
-		  cov_ar_full_dep(theta["v1_fast"],theta["a1_fast"],theta["v2_fast"],theta["a2_fast"],n1,n2) )
+		( cov_ar_full_dep(theta["v1_slow"],theta["a1_slow"],theta["v2_slow"],theta["a2_slow"],year1,year2) + #
+		  cov_ar_full_dep(theta["v1_fast"],theta["a1_fast"],theta["v2_fast"],theta["a2_fast"],year1,year2) )
 	Sigma [ (n1+1):(n1+n2), 1:n1 ] = t( Sigma [1:n1, (n1+1):(n1+n2)] )
 	return(Sigma)
 }
 
-cov_ar_full_dep = function(v1,a1,v2,a2,n1,n2) {
-	Cov = array(NA,dim=c(n1,n2))
-	for (i in 1:n1) {
-		for (j in 1:n2) {
-			if (i>=j)	Cov[i,j] = a1^(i-j)
-			else			Cov[i,j] = a2^(j-i)
+cov_ar_full_dep = function(v1,a1,v2,a2,year1,year2) {
+  n1 = length(year1)
+  n2 = length(year2)
+  
+	Cov = array(NA,dim=c(n1,n2), dimnames = list(year1 = year1, year2 = year2))
+	for (i in as.integer(year1)) {
+		for (j in as.integer(year2)) {
+			if (i>=j)	Cov[as.character(i),as.character(j)] = a1^(i-j)
+			else			Cov[as.character(i),as.character(j)] = a2^(j-i)
 		}
 	}
 	Covfd = sqrt(v1*v2)*sqrt(1-a1^2)*sqrt(1-a2^2)/(1-a1*a2) * Cov
