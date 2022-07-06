@@ -25,7 +25,7 @@ estim_mar2_link = function(y) {
 						alpha2_ar1=.8 ))
 
 	log_mar = function(theta,y) {
-		Sigma = Sigma_mar2(ilinkf_mar2(theta),length(y))
+		Sigma = Sigma_mar2(ilinkf_mar2(theta),y)
 		return(gauss_log_like(y,mean(y),Sigma))
 	}
 
@@ -46,21 +46,25 @@ estim_mar2_link = function(y) {
 #'
 #' @param theta a vector containing the MAR parameters returned by
 #'     \code{estim_mar2_link}
-#' @param n the whished number of lines/columns in the covariance matrix,
-#'     usually corresponds to the number of years of observations.
+#' @param y a vector containing the observation time series associated with
+#'     \code{theta} 
 #'
 #' @return a symmetric matrix corresponding to the MAR model.
 #'
 #' @examples
 #'
 #' @export
-Sigma_mar2 = function(theta,n) {
-  Sigma1_ar1 = array(NA,dim=c(n,n))
-  Sigma2_ar1 = array(NA,dim=c(n,n))
-  for (i in 1:n) {
-    for (j in 1:n) {
-      Sigma1_ar1[i,j] = theta["alpha1_ar1"]^(abs(i-j))
-      Sigma2_ar1[i,j] = theta["alpha2_ar1"]^(abs(i-j))
+Sigma_mar2 = function(theta,y) {
+
+	year = names(y)
+  n = length(y)
+  
+  Sigma1_ar1 = array(NA,dim=c(n,n), dimnames = list(year1 = year, year2 = year))
+  Sigma2_ar1 = array(NA,dim=c(n,n), dimnames = list(year1 = year, year2 = year))
+  for (i in as.integer(year)) {
+    for (j in as.integer(year)) {
+      Sigma1_ar1[as.character(i),as.character(j)] = theta["alpha1_ar1"]^(abs(i-j))
+      Sigma2_ar1[as.character(i),as.character(j)] = theta["alpha2_ar1"]^(abs(i-j))
     }
   }
   Sigma = theta["var1_ar1"] * Sigma1_ar1 + theta["var2_ar1"] * Sigma2_ar1
@@ -284,7 +288,7 @@ estim_mar_dep_full = function(y) {
 Sigma_mar_dep = function(theta,y) {
   # nvar: number of blocks (ie spatial dimension)
   nvar = length(y)
-  if (nvar < 2) stop("Error in estim_mar_dep: nb of residuals is not 2")
+  if (nvar < 2) stop("Error in Sigma_mar_dep: nb of residuals is not 2")
 
 	y1 = y[[1]]
 	y2 = y[[2]]
@@ -298,11 +302,11 @@ Sigma_mar_dep = function(theta,y) {
 	# (1,1)-block
 	theta_11 = theta[c("v1_slow","a1_slow","v1_fast","a1_fast")]
 	names(theta_11) = c("var1_ar1","alpha1_ar1","var2_ar1","alpha2_ar1")
-	Sigma[1:n1,1:n1] = Sigma_mar2(theta_11,n1)
+	Sigma[1:n1,1:n1] = Sigma_mar2(theta_11,y1)
 	# (2,2)-block
 	theta_22 = theta[c("v2_slow","a2_slow","v2_fast","a2_fast")]
 	names(theta_22) = c("var1_ar1","alpha1_ar1","var2_ar1","alpha2_ar1")
-	Sigma[(n1+1):(n1+n2),(n1+1):(n1+n2)] = Sigma_mar2(theta_22,n2)
+	Sigma[(n1+1):(n1+n2),(n1+1):(n1+n2)] = Sigma_mar2(theta_22,y2)
 	# (1,2) and (2,1) blocks
 	Sigma [ 1:n1, (n1+1):(n1+n2) ] = theta["lambda"] * #
 		( cov_ar_full_dep(theta["v1_slow"],theta["a1_slow"],theta["v2_slow"],theta["a2_slow"],year1,year2) + #

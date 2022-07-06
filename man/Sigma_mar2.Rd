@@ -5,14 +5,14 @@
 \title{Compute the covariance matrix corresponding to a mixture of two
 autoregressive (MAR) processes of order 1}
 \usage{
-Sigma_mar2(theta, n)
+Sigma_mar2(theta, y)
 }
 \arguments{
 \item{theta}{a vector containing the MAR parameters returned by
 \code{estim_mar2_link}}
 
-\item{n}{the whished number of lines/columns in the covariance matrix,
-usually corresponds to the number of years of observations.}
+\item{y}{a vector containing the observation time series associated with
+\code{theta}}
 }
 \value{
 a symmetric matrix corresponding to the MAR model.
